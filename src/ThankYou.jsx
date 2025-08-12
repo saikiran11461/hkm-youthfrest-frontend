@@ -39,7 +39,9 @@
     useEffect(() => {
       const verifyPayment = async () => {
         try {
+
           const res = await axios.get(`https://hkm-youtfrest-backend-razorpay-882278565284.asia-south1.run.app/users/verify-payment/${id}`);
+
           if (res.data.success) {
             setCandidate(res.data.candidate);
             setStatus('success');
@@ -90,11 +92,11 @@
   justify="center"
   gap={4}
   mb={8}
-  direction="row"      // Always row
-  textAlign="left"     // Always left-aligned
-  flexWrap="wrap"      // Optional: Wrap text below image if very narrow screen
+  direction="row"     
+  textAlign="left"     
+  flexWrap="wrap"    
 >
-  {/* Left: Logo with tick icon */}
+
   <Box position="relative" minW="96px">
     <Image
       src={krishnaPulseLogo}

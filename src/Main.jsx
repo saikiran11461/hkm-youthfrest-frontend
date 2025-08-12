@@ -89,6 +89,7 @@ const Main = () => {
           label: college.name,
           value: college.name,
         }));
+
         options.push({ label: "Other College", value: "Other College" });
         setCollegeOptions(options);
       } catch (err) {
@@ -164,8 +165,11 @@ const Main = () => {
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
+
       // Amount in paise for Razorpay
-      const amountInPaise = 1 * 100;
+
+      const amountInPaise = 49 * 100;
+
       const orderRes = await fetch(
         `${API_BASE}/create-order`,
         {
@@ -204,7 +208,11 @@ const Main = () => {
               }
             );
             const result = await verifyRes.json();
-            if (result.message === "success" || result.message === "Already Registered") {
+
+
+
+           if (result.message === "success" || result.message === "Already Registered") {
+
               toast({
                 title: "Registration Successful!",
                 description: "Your registration is confirmed.",
@@ -287,7 +295,7 @@ const Main = () => {
   return (
     <Box minH="100vh" bg="gray.50" py={8}>
       <Container maxW="2xl" px={4}>
-        {/* Header */}
+       
         <Flex
           direction="row"
           align="center"
