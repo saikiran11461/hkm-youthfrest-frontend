@@ -1,286 +1,202 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Heading,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
-  Button,
-  Spinner,
-  Input,
-  Flex,
   FormControl,
   FormLabel,
-  Tag,
-  Tooltip,
+  Input,
+  Button,
+  FormErrorMessage,
+  useToast,
+  InputGroup,
+  InputLeftAddon,
+  Flex,
   Text,
-  HStack,
-  Badge,
-  Select,
-  chakra,
+  Icon,
+  Fade,
+  Image,
 } from "@chakra-ui/react";
-import { CheckCircleIcon, WarningIcon, DownloadIcon, PhoneIcon } from "@chakra-ui/icons";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
-import Layout from "./component/Layout";
+import { CheckCircleIcon } from "@chakra-ui/icons";
+import { QRCodeSVG } from "qrcode.react";
 
-const AttendanceList = () => {
-  const [data, setData] = useState([]);
-  const [filteredCollege, setFilteredCollege] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+const Attendence = () => {
+  const [phone, setPhone] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [successName, setSuccessName] = useState("");
+  const [attendanceToken, setAttendanceToken] = useState("");
+  const toast = useToast();
 
-  useEffect(() => {
-    fetch("https://hkm-youtfrest-backend-razorpay-882278565284.asia-south1.run.app/users/attendance-list")
-      .then((res) => res.json())
-      .then((records) => {
-        setData(records);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch attendance list", err);
-        setLoading(false);
+  const handleSubmit = async () => {
+    setError("");
+    setSuccessName("");
+    setAttendanceToken("");
+    const trimmedPhone = phone.trim().replace(/\D/g, "");
+
+    if (!/^\d{10}$/.test(trimmedPhone)) {
+      setError("Please enter a valid 10-digit phone number.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch("https://hkm-youtfrest-backend-razorpay-882278565284.asia-south1.run.app/users/mark-attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ whatsappNumber: trimmedPhone }),
       });
-  }, []);
 
-  const filterByDate = (candidate) => {
-    if (!startDate && !endDate) return true;
-    const candidateDate = candidate.attendanceDate
-      ? new Date(candidate.attendanceDate)
-      : candidate.registrationDate
-      ? new Date(candidate.registrationDate)
-      : null;
-    if (!candidateDate) return false;
-    const start = startDate ? new Date(startDate) : null;
-    const end = endDate ? new Date(new Date(endDate).setHours(23, 59, 59, 999)) : null;
-    if (start && candidateDate < start) return false;
-    if (end && candidateDate > end) return false;
-    return true;
+      const data = await res.json();
+
+      if (res.ok) {
+        if ((data.status === "already-marked" || data.status === "success") && data.attendanceToken) {
+          setAttendanceToken(data.attendanceToken);
+          setSuccessName(data.name || "");
+        }
+
+        if (data.status === "already-marked") {
+          toast({
+            title: "Already Marked",
+            description: data.message || "Attendance has already been marked.",
+            status: "info",
+            duration: 3500,
+            isClosable: true,
+          });
+        } else if (data.status === "success") {
+          toast({
+            title: "Attendance Marked!",
+            description: `Marked for ${data.name}`,
+            status: "success",
+            duration: 3500,
+            isClosable: true,
+          });
+          setSuccessName(data.name);
+          setPhone("");
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: data.message || "Could not mark attendance",
+          status: "error",
+          duration: 3500,
+          isClosable: true,
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Server error",
+        description: err.message || "Something went wrong",
+        status: "error",
+        duration: 3500,
+        isClosable: true,
+      });
+    }
+    setLoading(false);
   };
-
-  const filteredData = data.filter((c) => {
-    const collegeMatch = filteredCollege ? c.college === filteredCollege : true;
-    const dateMatch = filterByDate(c);
-    const searchMatch =
-      search.length < 2 ||
-      [c.name, c.email, c.whatsappNumber, c.college, c.branch]
-        .join(" ")
-        .toLowerCase()
-        .includes(search.toLowerCase());
-    return collegeMatch && dateMatch && searchMatch;
-  });
-
-  const uniqueColleges = [...new Set(data.map((c) => c.college).filter(Boolean))];
-
-  const exportToExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(
-      filteredData.map((row, idx) => ({
-        "S.No": idx + 1,
-        Name: row.name,
-        Gender: row.gender,
-        Email: row.email,
-        College: row.college,
-        Branch: row.branch,
-        Phone: row.whatsappNumber,
-        "Attendance": row.attendance ? "Yes" : "No",
-        "Attendance Date": row.attendanceDate
-          ? new Date(row.attendanceDate).toLocaleString()
-          : "",
-        "Registration Date": row.registrationDate
-          ? new Date(row.registrationDate).toLocaleString()
-          : "",
-      }))
-    );
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance");
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-
-    const file = new Blob([excelBuffer], {
-      type: "application/octet-stream",
-    });
-    saveAs(file, "attendance.xlsx");
-  };
-
-  if (loading)
-    return (
-      <Layout>
-        <Flex justify="center" align="center" minH="70vh">
-          <Spinner size="xl" />
-        </Flex>
-      </Layout>
-    );
 
   return (
-    <Layout>
-      <Box px={{ base: 2, md: 8 }} py={6} maxW="100vw" minH="100vh" bg="gray.50">
-        <Flex justify="space-between" align="center" mb={6} wrap="wrap">
-          <Heading size="lg" color="teal.700">
-            Attendance List
-          </Heading>
-          <Button
-            colorScheme="teal"
-            variant="solid"
-            leftIcon={<DownloadIcon />}
-            onClick={exportToExcel}
-            minW="140px"
-            size="sm"
-          >
-            Export to Excel
-          </Button>
-        </Flex>
+    <Flex minH="100vh" align="center" justify="center" bg="gray.50" px={2}>
+      <Box
+        w="full"
+        maxW="400px"
+        bg="white"
+        p={8}
+        borderRadius="2xl"
+        boxShadow="xl"
+        textAlign="center"
+      >
+        <Heading mb={2} size="lg" color="teal.600" fontWeight="bold">
+          Mark Attendance
+        </Heading>
+        <Text mb={7} fontSize="md" color="gray.500">
+          Enter your WhatsApp mobile number to mark your attendance.
+        </Text>
 
-        <Box
-          mb={4}
-          overflowX="auto"
-          py={2}
-          px={2}
-          bg="white"
-          borderRadius="md"
-          boxShadow="sm"
+        <form
+          onSubmit={e => {
+            e.preventDefault();
+            handleSubmit();
+          }}
         >
-          <Flex gap={4} align="flex-end" wrap="nowrap" minW="600px">
-            <FormControl w="180px">
-              <FormLabel fontSize="sm">College</FormLabel>
-              <Select
-                placeholder="Select College"
-                onChange={(e) => setFilteredCollege(e.target.value)}
-                value={filteredCollege}
-                bg="gray.50"
-                size="sm"
-              >
-                {uniqueColleges.map((college, i) => (
-                  <option key={i} value={college}>
-                    {college}
-                  </option>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl w="150px">
-              <FormLabel fontSize="sm">From</FormLabel>
+          <FormControl isInvalid={!!error}>
+            <FormLabel htmlFor="phone" fontWeight="medium">
+              WhatsApp Number
+            </FormLabel>
+            <InputGroup>
+              <InputLeftAddon children="+91" />
               <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                bg="gray.50"
-                size="sm"
+                id="phone"
+                type="tel"
+                placeholder="10-digit mobile"
+                value={phone}
+                onChange={e => {
+                  const val = e.target.value.replace(/\D/g, "");
+                  if (val.length <= 10) setPhone(val);
+                }}
+                maxLength={10}
+                autoComplete="tel"
+                bg="gray.100"
+                fontWeight="medium"
+                letterSpacing="wide"
+                required
+                isDisabled={loading}
               />
-            </FormControl>
-            <FormControl w="150px">
-              <FormLabel fontSize="sm">To</FormLabel>
-              <Input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                bg="gray.50"
-                size="sm"
-              />
-            </FormControl>
-            <FormControl w="220px">
-              <FormLabel fontSize="sm">Search</FormLabel>
-              <Input
-                placeholder="Name, email, phone, college..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                bg="gray.50"
-                size="sm"
-              />
-            </FormControl>
-          </Flex>
-        </Box>
+            </InputGroup>
+            <FormErrorMessage>{error}</FormErrorMessage>
+          </FormControl>
 
-        <HStack mb={4}>
-          <Badge colorScheme="purple" fontSize="lg">
-            Total Marked: {filteredData.length}
-          </Badge>
-        </HStack>
+          <Button
+            mt={6}
+            colorScheme="teal"
+            width="full"
+            type="submit"
+            isLoading={loading}
+            loadingText="Marking..."
+            disabled={loading || phone.length !== 10}
+            fontWeight="bold"
+            fontSize="lg"
+            borderRadius="lg"
+            boxShadow="md"
+          >
+            Mark Attendance
+          </Button>
+        </form>
 
-        <Box overflowX="auto" rounded="md" boxShadow="md" bg="white" p={2}>
-          <Table variant="simple" size="sm">
-            <Thead bg="gray.100">
-              <Tr>
-                <Th>#</Th>
-                <Th>Name</Th>
-                <Th>Gender</Th>
-                <Th>Phone</Th>
-                <Th>College</Th>
-                <Th>Branch</Th>
-                <Th>Email</Th>
-                <Th>Attendance</Th>
-                <Th>Attendance Date</Th>
-                <Th>Registration Date</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {filteredData.map((candidate, idx) => (
-                <Tr key={candidate._id} _hover={{ bg: "gray.50" }}>
-                  <Td>{idx + 1}</Td>
-                  <Td>
-                    <Text fontWeight="semibold">{candidate.name}</Text>
-                  </Td>
-                  <Td>{candidate.gender}</Td>
-                  <Td>
-                    <Tooltip label={candidate.whatsappNumber} fontSize="xs">
-                      <HStack spacing={1}>
-                        <PhoneIcon boxSize={3} color="green.500" />
-                        <Text fontSize="sm" noOfLines={1} maxW="110px">
-                          {candidate.whatsappNumber}
-                        </Text>
-                      </HStack>
-                    </Tooltip>
-                  </Td>
-                  <Td>
-                    <Text fontSize="sm">{candidate.college}</Text>
-                  </Td>
-                  <Td>{candidate.branch}</Td>
-                  <Td>
-                    <Tooltip label={candidate.email} fontSize="xs">
-                      <Text fontSize="sm" noOfLines={1} maxW="140px">
-                        {candidate.email}
-                      </Text>
-                    </Tooltip>
-                  </Td>
-                  <Td>
-                    {candidate.attendance ? (
-                      <CheckCircleIcon color="green.400" />
-                    ) : (
-                      <WarningIcon color="gray.400" />
-                    )}
-                  </Td>
-                  <Td>
-                    {candidate.attendanceDate
-                      ? new Date(candidate.attendanceDate).toLocaleDateString()
-                      : "-"}
-                  </Td>
-                  <Td>
-                    {candidate.registrationDate
-                      ? new Date(candidate.registrationDate).toLocaleDateString()
-                      : "-"}
-                  </Td>
-                </Tr>
-              ))}
-              {filteredData.length === 0 && (
-                <Tr>
-                  <Td colSpan={10}>
-                    <Text color="gray.400" textAlign="center" py={10}>
-                      No attendance records found.
-                    </Text>
-                  </Td>
-                </Tr>
-              )}
-            </Tbody>
-          </Table>
-        </Box>
+        <Fade in={!!attendanceToken}>
+  {attendanceToken && (
+    <Box mt={8} textAlign="center">
+      <Icon as={CheckCircleIcon} w={12} h={12} color="green.400" />
+      {successName && (
+        <>
+          <Text mt={3} fontSize="xl" fontWeight="bold" color="green.600">
+            Attendance marked for
+          </Text>
+          <Text fontSize="2xl" fontWeight="extrabold" color="teal.700">
+            {successName}
+          </Text>
+        </>
+      )}
+      <Text fontSize="lg" color="teal.700" mb={2}>
+        Show this QR code to admin for confirmation
+      </Text>
+      <Box display="flex" justifyContent="center" alignItems="center">
+        <QRCodeSVG value={attendanceToken} size={200} />
       </Box>
-    </Layout>
+      <Image
+        mt={2}
+        mx="auto"
+        src="https://cdn.dribbble.com/users/1615584/screenshots/4187826/check02.gif"
+        alt="Success"
+        boxSize="80px"
+        borderRadius="full"
+        objectFit="cover"
+      />
+    </Box>
+  )}
+</Fade>
+      </Box>
+    </Flex>
   );
 };
 
-export default AttendanceList;
+export default Attendence;
