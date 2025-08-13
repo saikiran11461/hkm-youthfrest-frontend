@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from "@zxing/library";
 import axios from "axios";
-
+import { useToast } from "@chakra-ui/react"; 
 
 const SuccessIcon = () => (
   <span style={{
@@ -30,6 +30,10 @@ const AdminQrScanner = () => {
   const [candidate, setCandidate] = useState(null);
   const [status, setStatus] = useState("");
   const [message, setMessage] = useState("");
+  const toast = useToast();
+
+
+  const lastScanRef = useRef({ value: "", time: 0 });
 
   useEffect(() => {
     const codeReader = new BrowserMultiFormatReader();
@@ -55,6 +59,23 @@ const AdminQrScanner = () => {
               setMessage("");
               setCandidate(null);
 
+             
+              const now = Date.now();
+              if (
+                scannedText !== lastScanRef.current.value ||
+                now - lastScanRef.current.time > 1500
+              ) {
+                lastScanRef.current = { value: scannedText, time: now };
+                toast({
+                  title: "QR Code Scanned",
+                  description: `Scanned code: ${scannedText}`,
+                  status: "success",
+                  duration: 1800,
+                  isClosable: true,
+                  position: "top",
+                });
+              }
+
               try {
                 const response = await axios.post(
                   "https://hkm-youtfrest-backend-razorpay-882278565284.asia-south1.run.app/users/admin/attendance-scan",
@@ -73,7 +94,6 @@ const AdminQrScanner = () => {
                   "Error fetching candidate details"
                 );
               }
-           
             }
             if (err && !(err instanceof NotFoundException)) {
               setError(err.message || "QR scan error");
@@ -86,7 +106,7 @@ const AdminQrScanner = () => {
     return () => {
       codeReader.reset();
     };
-  }, []);
+  }, [toast]);
 
   return (
     <div style={{
@@ -151,9 +171,10 @@ const AdminQrScanner = () => {
             color: "#2d3748"
           }}>
             <div style={{marginBottom: 6}}><b>Name:</b> {candidate.name}</div>
+            {/* Uncomment for more details if available:
             {candidate.email && <div style={{marginBottom: 6}}><b>Email:</b> {candidate.email}</div>}
             {candidate.gender && <div style={{marginBottom: 6}}><b>Gender:</b> {candidate.gender}</div>}
-            {candidate.college && <div><b>College:</b> {candidate.college}</div>}
+            {candidate.college && <div><b>College:</b> {candidate.college}</div>} */}
           </div>
         )}
         {message && (
