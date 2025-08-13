@@ -34,7 +34,7 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:3300/admin/users/login", {
+      const res = await fetch("https://hkm-youtfrest-backend-razorpay-882278565284.asia-south1.run.app/admin/users/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
