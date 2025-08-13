@@ -13,21 +13,27 @@ import {
   Flex,
   Text,
   Icon,
-  Fade, 
+  Fade,
   Image,
+  Link, 
 } from "@chakra-ui/react";
-import { CheckCircleIcon } from "@chakra-ui/icons";
+import { CheckCircleIcon, WarningIcon } from "@chakra-ui/icons"; 
+import { QRCodeSVG } from "qrcode.react";
 
 const Attendence = () => {
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [successName, setSuccessName] = useState("");
+  const [attendanceToken, setAttendanceToken] = useState("");
+  const [notFound, setNotFound] = useState(false); 
   const toast = useToast();
 
   const handleSubmit = async () => {
     setError("");
     setSuccessName("");
+    setAttendanceToken("");
+    setNotFound(false); 
     const trimmedPhone = phone.trim().replace(/\D/g, "");
 
     if (!/^\d{10}$/.test(trimmedPhone)) {
@@ -46,6 +52,11 @@ const Attendence = () => {
       const data = await res.json();
 
       if (res.ok) {
+        if ((data.status === "already-marked" || data.status === "success") && data.attendanceToken) {
+          setAttendanceToken(data.attendanceToken);
+          setSuccessName(data.name || "");
+        }
+
         if (data.status === "already-marked") {
           toast({
             title: "Already Marked",
@@ -54,7 +65,7 @@ const Attendence = () => {
             duration: 3500,
             isClosable: true,
           });
-        } else {
+        } else if (data.status === "success") {
           toast({
             title: "Attendance Marked!",
             description: `Marked for ${data.name}`,
@@ -66,13 +77,21 @@ const Attendence = () => {
           setPhone("");
         }
       } else {
-        toast({
-          title: "Error",
-          description: data.message || "Could not mark attendance",
-          status: "error",
-          duration: 3500,
-          isClosable: true,
-        });
+      
+        if (
+          data?.message?.toLowerCase().includes("not found") ||
+          data?.message?.toLowerCase().includes("no user")
+        ) {
+          setNotFound(true);
+        } else {
+          toast({
+            title: "Error",
+            description: data.message || "Could not mark attendance",
+            status: "error",
+            duration: 3500,
+            isClosable: true,
+          });
+        }
       }
     } catch (err) {
       toast({
@@ -122,7 +141,6 @@ const Attendence = () => {
                 placeholder="10-digit mobile"
                 value={phone}
                 onChange={e => {
-                  // allow only numbers
                   const val = e.target.value.replace(/\D/g, "");
                   if (val.length <= 10) setPhone(val);
                 }}
@@ -155,17 +173,49 @@ const Attendence = () => {
           </Button>
         </form>
 
-        {/* Success Message/Fade-in illustration */}
-        <Fade in={!!successName}>
-          {successName && (
+       
+        <Fade in={notFound}>
+          {notFound && (
+            <Box mt={6} p={4} borderRadius="lg" bg="orange.50" border="1px solid" borderColor="orange.200" textAlign="left">
+              <Flex align="center" mb={2}>
+                <Icon as={WarningIcon} color="orange.400" mr={2} boxSize={6} />
+                <Text fontWeight="bold" color="orange.600">
+                  Number not registered!
+                </Text>
+              </Flex>
+              <Text color="orange.700" fontSize="md" mb={2}>
+                Please register here:{" "}
+                <Link color="teal.600" href="https://youthfest.harekrishnavizag.org/" isExternal fontWeight="bold" textDecoration="underline">
+                  https://youthfest.harekrishnavizag.org/
+                </Link>
+              </Text>
+              <Text color="orange.700" fontSize="md">
+                And please visit the enquiry counter.
+              </Text>
+            </Box>
+          )}
+        </Fade>
+
+        <Fade in={!!attendanceToken}>
+          {attendanceToken && (
             <Box mt={8} textAlign="center">
               <Icon as={CheckCircleIcon} w={12} h={12} color="green.400" />
-              <Text mt={3} fontSize="xl" fontWeight="bold" color="green.600">
-                Attendance marked for
+              {successName && (
+                <>
+                  <Text mt={3} fontSize="xl" fontWeight="bold" color="green.600">
+                    Attendance marked for
+                  </Text>
+                  <Text fontSize="2xl" fontWeight="extrabold" color="teal.700">
+                    {successName}
+                  </Text>
+                </>
+              )}
+              <Text fontSize="lg" color="teal.700" mb={2}>
+                Show this QR code to admin for confirmation
               </Text>
-              <Text fontSize="2xl" fontWeight="extrabold" color="teal.700">
-                {successName}
-              </Text>
+              <Box display="flex" justifyContent="center" alignItems="center">
+                <QRCodeSVG value={attendanceToken} size={200} />
+              </Box>
               <Image
                 mt={2}
                 mx="auto"
@@ -175,6 +225,10 @@ const Attendence = () => {
                 borderRadius="full"
                 objectFit="cover"
               />
+           
+              <Text mt={4} fontSize="md" fontWeight="bold" color="teal.600">
+                Please visit the admin counter.
+              </Text>
             </Box>
           )}
         </Fade>

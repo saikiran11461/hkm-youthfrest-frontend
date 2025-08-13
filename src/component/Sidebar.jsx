@@ -54,6 +54,28 @@ const Sidebar = () => {
         >
          College
         </Box>
+
+          <Box
+          as={Link}
+          to="/admin/AdminAttendanceScannedList"
+          _hover={{ bg: "gray.700" }}
+          p="3"
+          borderRadius="md"
+          cursor="pointer"
+        >
+         AdminAttendanceScannedList
+        </Box>
+
+            <Box
+          as={Link}
+          to="/admin/adminqrscanner"
+          _hover={{ bg: "gray.700" }}
+          p="3"
+          borderRadius="md"
+          cursor="pointer"
+        >
+         adminqrscanner
+        </Box>
         {/* Logout Button */}
        
       </VStack>

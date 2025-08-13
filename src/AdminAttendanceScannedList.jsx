@@ -22,40 +22,38 @@ import {
   Select,
   chakra,
 } from "@chakra-ui/react";
-import { CheckCircleIcon, WarningIcon, DownloadIcon, PhoneIcon } from "@chakra-ui/icons";
+import { CheckCircleIcon, WarningIcon, TimeIcon, DownloadIcon, PhoneIcon } from "@chakra-ui/icons";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { useNavigate } from "react-router-dom";
 import Layout from "./component/Layout";
 
-const AttendanceList = () => {
+const AdminAttendanceScannedList = () => {
   const [data, setData] = useState([]);
   const [filteredCollege, setFilteredCollege] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("https://hkm-youtfrest-backend-razorpay-882278565284.asia-south1.run.app/users/attendance-list")
+    fetch("https://hkm-youtfrest-backend-razorpay-882278565284.asia-south1.run.app/users/admin/scanned-list")
       .then((res) => res.json())
       .then((records) => {
         setData(records);
         setLoading(false);
       })
       .catch((err) => {
-        console.error("Failed to fetch attendance list", err);
+        console.error("Failed to fetch scanned attendance", err);
         setLoading(false);
       });
   }, []);
 
   const filterByDate = (candidate) => {
     if (!startDate && !endDate) return true;
-    const candidateDate = candidate.attendanceDate
-      ? new Date(candidate.attendanceDate)
-      : candidate.registrationDate
-      ? new Date(candidate.registrationDate)
-      : null;
-    if (!candidateDate) return false;
+    if (!candidate.adminAttendanceDate) return false;
+    const candidateDate = new Date(candidate.adminAttendanceDate);
     const start = startDate ? new Date(startDate) : null;
     const end = endDate ? new Date(new Date(endDate).setHours(23, 59, 59, 999)) : null;
     if (start && candidateDate < start) return false;
@@ -68,7 +66,7 @@ const AttendanceList = () => {
     const dateMatch = filterByDate(c);
     const searchMatch =
       search.length < 2 ||
-      [c.name, c.email, c.whatsappNumber, c.college, c.branch]
+      [c.name, c.email, c.phone, c.college, c.branch]
         .join(" ")
         .toLowerCase()
         .includes(search.toLowerCase());
@@ -82,22 +80,18 @@ const AttendanceList = () => {
       filteredData.map((row, idx) => ({
         "S.No": idx + 1,
         Name: row.name,
-        Gender: row.gender,
         Email: row.email,
+        Phone: row.phone,
+        Gender: row.gender,
         College: row.college,
         Branch: row.branch,
-        Phone: row.whatsappNumber,
-        "Attendance": row.attendance ? "Yes" : "No",
-        "Attendance Date": row.attendanceDate
-          ? new Date(row.attendanceDate).toLocaleString()
-          : "",
-        "Registration Date": row.registrationDate
-          ? new Date(row.registrationDate).toLocaleString()
+        "Scanned At": row.adminAttendanceDate
+          ? new Date(row.adminAttendanceDate).toLocaleString()
           : "",
       }))
     );
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance");
+    XLSX.utils.book_append_sheet(workbook, worksheet, "AdminScannedAttendance");
     const excelBuffer = XLSX.write(workbook, {
       bookType: "xlsx",
       type: "array",
@@ -106,7 +100,7 @@ const AttendanceList = () => {
     const file = new Blob([excelBuffer], {
       type: "application/octet-stream",
     });
-    saveAs(file, "attendance.xlsx");
+    saveAs(file, "admin_scanned_attendance.xlsx");
   };
 
   if (loading)
@@ -123,18 +117,16 @@ const AttendanceList = () => {
       <Box px={{ base: 2, md: 8 }} py={6} maxW="100vw" minH="100vh" bg="gray.50">
         <Flex justify="space-between" align="center" mb={6} wrap="wrap">
           <Heading size="lg" color="teal.700">
-            Attendance List
+            Admin Scanned Attendance List
           </Heading>
-          <Button
+          {/* <Button
             colorScheme="teal"
-            variant="solid"
-            leftIcon={<DownloadIcon />}
-            onClick={exportToExcel}
-            minW="140px"
-            size="sm"
+            variant="outline"
+            leftIcon={<TimeIcon />}
+            onClick={() => navigate("/admin/attendance")}
           >
-            Export to Excel
-          </Button>
+            Go to Attendance Scan
+          </Button> */}
         </Flex>
 
         <Box
@@ -193,12 +185,22 @@ const AttendanceList = () => {
                 size="sm"
               />
             </FormControl>
+            {/* <Button
+              colorScheme="teal"
+              leftIcon={<DownloadIcon />}
+              onClick={exportToExcel}
+              variant="solid"
+              size="sm"
+              minW="140px"
+            >
+              Export to Excel
+            </Button> */}
           </Flex>
         </Box>
 
         <HStack mb={4}>
           <Badge colorScheme="purple" fontSize="lg">
-            Total Marked: {filteredData.length}
+            Total Scanned: {filteredData.length}
           </Badge>
         </HStack>
 
@@ -208,14 +210,13 @@ const AttendanceList = () => {
               <Tr>
                 <Th>#</Th>
                 <Th>Name</Th>
+                <Th>Email</Th>
                 <Th>Gender</Th>
                 <Th>Phone</Th>
                 <Th>College</Th>
                 <Th>Branch</Th>
-                <Th>Email</Th>
-                <Th>Attendance</Th>
-                <Th>Attendance Date</Th>
-                <Th>Registration Date</Th>
+                <Th>Scanned At</Th>
+                <Th>Status</Th>
               </Tr>
             </Thead>
             <Tbody>
@@ -225,21 +226,6 @@ const AttendanceList = () => {
                   <Td>
                     <Text fontWeight="semibold">{candidate.name}</Text>
                   </Td>
-                  <Td>{candidate.gender}</Td>
-                  <Td>
-                    <Tooltip label={candidate.whatsappNumber} fontSize="xs">
-                      <HStack spacing={1}>
-                        <PhoneIcon boxSize={3} color="green.500" />
-                        <Text fontSize="sm" noOfLines={1} maxW="110px">
-                          {candidate.whatsappNumber}
-                        </Text>
-                      </HStack>
-                    </Tooltip>
-                  </Td>
-                  <Td>
-                    <Text fontSize="sm">{candidate.college}</Text>
-                  </Td>
-                  <Td>{candidate.branch}</Td>
                   <Td>
                     <Tooltip label={candidate.email} fontSize="xs">
                       <Text fontSize="sm" noOfLines={1} maxW="140px">
@@ -247,30 +233,38 @@ const AttendanceList = () => {
                       </Text>
                     </Tooltip>
                   </Td>
+                  <Td>{candidate.gender || "-"}</Td>
                   <Td>
-                    {candidate.attendance ? (
-                      <CheckCircleIcon color="green.400" />
-                    ) : (
-                      <WarningIcon color="gray.400" />
-                    )}
+                    <Tooltip label={candidate.phone} fontSize="xs">
+                      <HStack spacing={1}>
+                        <PhoneIcon boxSize={3} color="green.500" />
+                        <Text fontSize="sm" noOfLines={1} maxW="110px">
+                          {candidate.phone}
+                        </Text>
+                      </HStack>
+                    </Tooltip>
                   </Td>
                   <Td>
-                    {candidate.attendanceDate
-                      ? new Date(candidate.attendanceDate).toLocaleDateString()
+                    <Text fontSize="sm">{candidate.college || "-"}</Text>
+                  </Td>
+                  <Td>{candidate.branch || "-"}</Td>
+                  <Td>
+                    {candidate.adminAttendanceDate
+                      ? new Date(candidate.adminAttendanceDate).toLocaleString()
                       : "-"}
                   </Td>
                   <Td>
-                    {candidate.registrationDate
-                      ? new Date(candidate.registrationDate).toLocaleDateString()
-                      : "-"}
+                    <Tag colorScheme="green" size="sm">
+                      <CheckCircleIcon mr={1} color="green.500" /> Scanned
+                    </Tag>
                   </Td>
                 </Tr>
               ))}
               {filteredData.length === 0 && (
                 <Tr>
-                  <Td colSpan={10}>
+                  <Td colSpan={9}>
                     <Text color="gray.400" textAlign="center" py={10}>
-                      No attendance records found.
+                      No scanned attendance records found.
                     </Text>
                   </Td>
                 </Tr>
@@ -283,4 +277,4 @@ const AttendanceList = () => {
   );
 };
 
-export default AttendanceList;
+export default AdminAttendanceScannedList;

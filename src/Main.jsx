@@ -44,7 +44,7 @@ const initialState = {
   year: "",
   dob: "",
   slot: "",
-  amount: "49.00",
+  amount: "1.00",
 };
 
 const slotOptions = [
@@ -55,6 +55,7 @@ const slotOptions = [
 
 const RAZORPAY_KEY =  "rzp_live_HBAc3tlMK0X5Xd";
 const API_BASE =  "https://hkm-youtfrest-backend-razorpay-882278565284.asia-south1.run.app/users";
+
 
 const Main = () => {
   const toast = useToast();
@@ -88,7 +89,7 @@ const Main = () => {
           label: college.name,
           value: college.name,
         }));
-    
+
         options.push({ label: "Other College", value: "Other College" });
         setCollegeOptions(options);
       } catch (err) {
@@ -165,7 +166,10 @@ const Main = () => {
     setIsSubmitting(true);
     try {
 
+      // Amount in paise for Razorpay
+
       const amountInPaise = 49 * 100;
+
       const orderRes = await fetch(
         `${API_BASE}/create-order`,
         {
@@ -204,7 +208,11 @@ const Main = () => {
               }
             );
             const result = await verifyRes.json();
+
+
+
            if (result.message === "success" || result.message === "Already Registered") {
+
               toast({
                 title: "Registration Successful!",
                 description: "Your registration is confirmed.",
