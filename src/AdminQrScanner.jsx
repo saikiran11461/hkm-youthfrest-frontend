@@ -68,7 +68,7 @@ const AdminQrScanner = () => {
                 lastScanRef.current = { value: scannedText, time: now };
                 toast({
                   title: "QR Code Scanned",
-                  description: `Scanned code: ${scannedText}`,
+                  // description: `Scanned code: ${scannedText}`,
                   status: "success",
                   duration: 1800,
                   isClosable: true,
@@ -156,7 +156,7 @@ const AdminQrScanner = () => {
             color: "#222"
           }}>
             <SuccessIcon />
-            <span>QR Code: <span style={{ fontWeight: 800, fontFamily: "monospace", letterSpacing: "0.5px" }}>{result}</span></span>
+           {/* <span>QR Code: <span style={{ fontWeight: 800, fontFamily: "monospace", letterSpacing: "0.5px" }}>{result}</span></span> */}
           </div>
         )}
         {candidate && (

@@ -211,7 +211,7 @@ const Attendence = () => {
                 </>
               )}
               <Text fontSize="lg" color="teal.700" mb={2}>
-                Show this QR code to admin for confirmation
+                Show this QR at Reporting Counter and Collect Entry Band
               </Text>
               <Box display="flex" justifyContent="center" alignItems="center">
                 <QRCodeSVG value={attendanceToken} size={200} />

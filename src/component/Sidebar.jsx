@@ -6,9 +6,12 @@ const Sidebar = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    
-    navigate("/login"); 
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    navigate("/admin/login");
   };
+
+  const role = localStorage.getItem("role");
 
   return (
     <Box
@@ -24,60 +27,68 @@ const Sidebar = () => {
         My Sidebar
       </Text>
       <VStack align="stretch" spacing="4">
-        <Box
-          as={Link}
-          to="/admin"
-          _hover={{ bg: "gray.700" }}
-          p="3"
-          borderRadius="md"
-          cursor="pointer"
-        >
-         All Candidates
-        </Box>
-        <Box
-          as={Link}
-          to="/admin/attendance"
-          _hover={{ bg: "gray.700" }}
-          p="3"
-          borderRadius="md"
-          cursor="pointer"
-        >
-          Attendance
-        </Box>
-    <Box
-          as={Link}
-          to="/admin/college"
-          _hover={{ bg: "gray.700" }}
-          p="3"
-          borderRadius="md"
-          cursor="pointer"
-        >
-         College
-        </Box>
-
-          <Box
-          as={Link}
-          to="/admin/AdminAttendanceScannedList"
-          _hover={{ bg: "gray.700" }}
-          p="3"
-          borderRadius="md"
-          cursor="pointer"
-        >
-         AdminAttendanceScannedList
-        </Box>
-
+        {role === "admin" && (
+          <>
             <Box
-          as={Link}
-          to="/admin/adminqrscanner"
-          _hover={{ bg: "gray.700" }}
-          p="3"
-          borderRadius="md"
-          cursor="pointer"
-        >
-         adminqrscanner
-        </Box>
-        {/* Logout Button */}
+              as={Link}
+              to="/admin"
+              _hover={{ bg: "gray.700" }}
+              p="3"
+              borderRadius="md"
+              cursor="pointer"
+            >
+              All Candidates
+            </Box>
+            <Box
+              as={Link}
+              to="/admin/attendance"
+              _hover={{ bg: "gray.700" }}
+              p="3"
+              borderRadius="md"
+              cursor="pointer"
+            >
+              Attendance
+            </Box>
+            <Box
+              as={Link}
+              to="/admin/college"
+              _hover={{ bg: "gray.700" }}
+              p="3"
+              borderRadius="md"
+              cursor="pointer"
+            >
+              College
+            </Box>
+          </>
+        )}
+        {(role === "admin" || role === "user") && (
+          <>
+            <Box
+              as={Link}
+              to="/admin/AdminAttendanceScannedList"
+              _hover={{ bg: "gray.700" }}
+              p="3"
+              borderRadius="md"
+              cursor="pointer"
+            >
+              AdminAttendanceScannedList
+            </Box>
+            <Box
+              as={Link}
+              to="/admin/adminqrscanner"
+              _hover={{ bg: "gray.700" }}
+              p="3"
+              borderRadius="md"
+              cursor="pointer"
+            >
+              adminqrscanner
+            </Box>
+          </>
+        )}
        
+        <Button colorScheme="red" mt={8} onClick={handleLogout}>
+          Logout
+        </Button>
       </VStack>
     </Box>
   );

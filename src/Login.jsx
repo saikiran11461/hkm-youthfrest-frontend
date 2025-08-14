@@ -34,7 +34,7 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const res = await fetch("http://localhost:3300/admin/users/login", {
+      const res = await fetch("https://hkm-youtfrest-backend-razorpay-882278565284.asia-south1.run.app/admin/users/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -52,12 +52,16 @@ const Login = () => {
           duration: 3000,
           isClosable: true,
         });
-   
+        console.log(data)
         localStorage.setItem("token", data.token);
-         localStorage.setItem("role", data.role);
-
-        navigate("/")
-      
+        localStorage.setItem("role", data.role);
+        if (data.role === "admin") {
+          navigate("/admin");
+        } else if (data.role === "user") {
+          navigate("/admin/AdminAttendanceScannedList");
+        } else {
+          navigate("/");
+        }
       } else {
         toast({
           title: "login Failed.",
