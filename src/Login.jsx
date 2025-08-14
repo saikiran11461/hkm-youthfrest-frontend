@@ -52,12 +52,16 @@ const Login = () => {
           duration: 3000,
           isClosable: true,
         });
-   
+        console.log(data)
         localStorage.setItem("token", data.token);
-         localStorage.setItem("role", data.role);
-
-        navigate("/")
-      
+        localStorage.setItem("role", data.role);
+        if (data.role === "admin") {
+          navigate("/admin");
+        } else if (data.role === "user") {
+          navigate("/admin/AdminAttendanceScannedList");
+        } else {
+          navigate("/");
+        }
       } else {
         toast({
           title: "login Failed.",
